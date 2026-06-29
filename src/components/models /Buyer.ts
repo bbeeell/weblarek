@@ -1,74 +1,45 @@
-import { IBuyer, TPayment } from "../../types/index";
-
 export class Buyer {
-  protected data: IBuyer;
+  public paymentType: string;
+  public deliveryAddress: string;
+  public contactEmail: string;
+  public contactPhone: string;
 
   constructor() {
-    this.data = {
-      payment: "",
-      address: "",
-      email: "",
-      phone: "",
-    };
+    this.paymentType = "";
+    this.deliveryAddress = "";
+    this.contactEmail = "";
+    this.contactPhone = "";
   }
 
-  savePaymentType(payment: TPayment) {
-    this.data.payment = payment;
+  // Переименовали clearBuyerData -> resetProfile
+  public resetProfile(): void {
+    this.paymentType = "";
+    this.deliveryAddress = "";
+    this.contactEmail = "";
+    this.contactPhone = "";
   }
 
-  saveAddress(address: string) {
-    this.data.address = address;
-  }
+  // Полностью переписали логику валидации
+  public validateFields(): Record<string, string> {
+    const validationErrors: Record<string, string> = {};
 
-  saveEmail(email: string) {
-    this.data.email = email;
-  }
-
-  savePhone(phone: string) {
-    this.data.phone = phone;
-  }
-
-  getData(): IBuyer {
-    return this.data;
-  }
-
-  clearBuyerData() {
-    this.data = {
-      payment: "",
-      address: "",
-      email: "",
-      phone: "",
-    };
-  }
-
-  validate(): {
-    payment: string;
-    address: string;
-    email: string;
-    phone: string;
-  } {
-    const errors = {
-      payment: "",
-      address: "",
-      email: "",
-      phone: "",
-    };
-
-    if (!this.data.payment.trim()) {
-      errors.payment = "Не выбран вид оплаты";
-    }
-    if (!this.data.address.trim()) {
-      errors.address = "Укажите адрес";
+    // Используем строгое сравнение и trim
+    if (!this.paymentType || this.paymentType.trim().length === 0) {
+      validationErrors.paymentType = "Необходимо выбрать способ оплаты";
     }
 
-    if (!this.data.email.trim()) {
-      errors.email = "Укажите email";
+    if (!this.deliveryAddress || this.deliveryAddress.trim().length === 0) {
+      validationErrors.deliveryAddress = "Не указан адрес доставки";
     }
 
-    if (!this.data.phone.trim()) {
-      errors.phone = "Укажите телефон";
+    if (!this.contactEmail || this.contactEmail.trim().length === 0) {
+      validationErrors.contactEmail = "Не указан email";
     }
 
-    return errors;
+    if (!this.contactPhone || this.contactPhone.trim().length === 0) {
+      validationErrors.contactPhone = "Не указан номер телефона";
+    }
+
+    return validationErrors;
   }
 }
