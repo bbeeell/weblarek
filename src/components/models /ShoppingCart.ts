@@ -42,7 +42,7 @@ export class ShoppingCart {
   public countItems(): number {
     return this.storedItems.length;
   }
-  
+
   public verifyItemExistence(itemId: string): boolean {
     return this.storedItems.some(item => item.id === itemId);
   }
