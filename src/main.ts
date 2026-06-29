@@ -3,65 +3,89 @@ import { Api } from './components/base/Api';
 import { ServerApi } from './components/communication/ServerApi';
 import { ShoppingCart } from './components/models/ShoppingCart';
 import { EventEmitter } from './components/base/Events';
-import { Buyer } from './components/models/Buyer';
+import { Buyer, ValidationErrors } from './components/models/Buyer';
+import { ProductCatalog } from './components/models/ProductCatalog';
+import { IProduct } from './types';
 
-// 1. Инициализация инфраструктуры
-const eventBus = new EventEmitter(); // Создаем экземпляр класса
-const httpClient = new Api(API_URL);
-const webLarekApi = new ServerApi(httpClient);
+// ЭТАП 1: Проверка на моковых данных
+console.log('--- ТЕСТИРОВАНИЕ НА МОКОВЫХ ДАННЫХ ---');
 
-// 2. Инициализация моделей
-const userProfile = new Buyer();
-const basketModel = new ShoppingCart(eventBus); // Передаем eventBus в корзину
+// 1.1 Подготовка моковых данных
+const mockProducts: IProduct[] = [
+  { id: 'p1', title: 'Моковый товар 1', description: 'Описание 1', price: 100, image: '', category: 'soft' },
+  { id: 'p2', title: 'Моковый товар 2', description: 'Описание 2', price: 200, image: '', category: 'hard' },
+  { id: 'p3', title: 'Моковый товар 3', description: 'Описание 3', price: 300, image: '', category: 'other' },
+];
 
-// 3. Основная логика (функция инициализации)
-async function runShopScenario() {
-  console.log("--- Запуск сценария магазина ---");
+// 1.2 Проверка каталога
+const catalogModel = new ProductCatalog();
+catalogModel.saveProducts(mockProducts);
+console.log(`1. Товаров в каталоге: ${catalogModel.getProducts().length}`);
+const foundProduct = catalogModel.getProductByID('p2');
+catalogModel.saveProduct(foundProduct!); // Сохраняем выбранный
+console.log(`2. Выбранный товар: ${catalogModel.getProduct()?.title}`);
 
+// 1.3 Проверка корзины
+const events = new EventEmitter();
+const basket = new ShoppingCart(events);
+
+basket.pushItem(mockProducts[0]);
+basket.pushItem(mockProducts[1]);
+basket.pushItem(mockProducts[0]); // Проверка на дубликат
+console.log(`3. В корзине товаров: ${basket.countItems()} (Дубликат не засчитан)`);
+console.log(`4. Общая сумма: ${basket.evaluateTotalPrice()}`);
+
+basket.discardItem('p1');
+console.log(`5. После удаления p1 осталось: ${basket.countItems()}`);
+
+basket.resetCart();
+console.log(`6. После очистки корзины товаров: ${basket.countItems()}`);
+
+// 1.4 Проверка покупателя
+const buyer = new Buyer();
+buyer.setPayment('card');
+buyer.setAddress('Москва, ул. Тестовая, д.1');
+buyer.setEmail('test@mail.ru');
+buyer.setPhone('+79991234567');
+
+const validData = buyer.getData();
+console.log('7. Данные покупателя:', validData);
+
+const validErrors = buyer.validateFields();
+console.log('8. Ошибки валидации (ожидаем пустой объект):', validErrors);
+
+buyer.resetProfile();
+const emptyData = buyer.getData();
+console.log('9. Данные после сброса:', emptyData);
+
+const emptyErrors = buyer.validateFields();
+console.log('10. Ошибки валидации после сброса:', emptyErrors);
+
+
+// ЭТАП 2: Интеграция с реальным API
+console.log('\n--- ТЕСТИРОВАНИЕ РЕАЛЬНОГО API ---');
+
+const apiClient = new Api(API_URL);
+const shopApi = new ServerApi(apiClient);
+
+async function runRealApiScenario() {
   try {
-    // Загружаем товары
-    const goodsData = await webLarekApi.requestProductCatalog();
-    console.log(`Загружено товаров: ${goodsData.items.length}`);
+    console.log('Отправляю запрос к /product...');
+    const goodsData = await shopApi.requestProductCatalog();
+    console.log(`Загружено товаров с сервера: ${goodsData.items.length}`);
+
+    // Сохранение реальных данных в каталог
+    catalogModel.saveProducts(goodsData.items);
     
+    // Проверка работы метода получения по ID на реальных данных
     if (goodsData.items.length > 0) {
-        const firstProduct = goodsData.items[0];
-        console.log(`Первый товар в списке: ${firstProduct.title}`);
-        
-        // Добавляем в корзину
-        basketModel.pushItem(firstProduct);
-        console.log(`Товар "${firstProduct.title}" добавлен в корзину.`);
+      const realProduct = catalogModel.getProductByID(goodsData.items[0].id);
+      console.log(`Первый реальный товар: ${realProduct?.title}`);
     }
-  } catch (err) {
-    console.error("Ошибка загрузки каталога:", err);
-    return;
-  }
 
-  // Тестовый товар
-  const dummyProduct = { id: 'test-01', title: 'Тестовый продукт', price: 500 } as any;
-  basketModel.pushItem(dummyProduct);
-
-  // Проверяем методы переписанной корзины
-  console.log(`В корзине товаров: ${basketModel.countItems()}`);
-  console.log(`Общая сумма: ${basketModel.evaluateTotalPrice()} руб.`);
-  console.log(`Есть ли тестовый товар? ${basketModel.verifyItemExistence('test-01')}`);
-
-  // Удаляем товар
-  basketModel.discardItem('test-01');
-  console.log(`После удаления осталось: ${basketModel.countItems()} товаров.`);
-  
-  // Валидация данных пользователя
-  userProfile.paymentType = 'online';
-  userProfile.deliveryAddress = 'Санкт-Петербург, Невский пр.';
-  userProfile.contactEmail = 'client@mail.com';
-  userProfile.contactPhone = '+71234567890';
-
-  const profileErrors = userProfile.validateFields();
-  if (Object.keys(profileErrors).length === 0) {
-      console.log('Профиль пользователя заполнен корректно.');
-  } else {
-      console.log('Ошибки в профиле:', profileErrors);
+  } catch (error) {
+    console.error('Ошибка при загрузке с сервера:', error);
   }
 }
 
-// Запускаем сценарий
-runShopScenario();
+runRealApiScenario();
