@@ -1,42 +1,77 @@
+import { IBuyer, TPayment } from '../../types/index';
+
+// Вынос типа ошибок валидации в именованный тип
+export type ValidationErrors = Partial<Record<keyof IBuyer, string>>;
+
 export class Buyer {
-  public paymentType: string;
-  public deliveryAddress: string;
-  public contactEmail: string;
-  public contactPhone: string;
+  // Защищата поля от прямого изменения извне
+  protected _payment: TPayment;
+  protected _address: string;
+  protected _email: string;
+  protected _phone: string;
 
   constructor() {
-    this.paymentType = "";
-    this.deliveryAddress = "";
-    this.contactEmail = "";
-    this.contactPhone = "";
+    this._payment = '';
+    this._address = '';
+    this._email = '';
+    this._phone = '';
   }
 
+  // Сеттеры для установки значений полей
+  public setPayment(payment: TPayment): void {
+    this._payment = payment;
+  }
+
+  public setAddress(address: string): void {
+    this._address = address;
+  }
+
+  public setEmail(email: string): void {
+    this._email = email;
+  }
+
+  public setPhone(phone: string): void {
+    this._phone = phone;
+  }
+
+  // Метод для получения полного объекта данных
+  public getData(): IBuyer {
+    return {
+      payment: this._payment,
+      address: this._address,
+      email: this._email,
+      phone: this._phone,
+    };
+  }
+
+  // Сброс данных до начальных значений
   public resetProfile(): void {
-    this.paymentType = "";
-    this.deliveryAddress = "";
-    this.contactEmail = "";
-    this.contactPhone = "";
+    this._payment = '';
+    this._address = '';
+    this._email = '';
+    this._phone = '';
   }
 
-  public validateFields(): Record<string, string> {
-    const validationErrors: Record<string, string> = {};
+  // Валидация с использованием вынесенного типа
+  public validateFields(): ValidationErrors {
+    const errors: ValidationErrors = {};
 
-    if (!this.paymentType || this.paymentType.trim().length === 0) {
-      validationErrors.paymentType = "Необходимо выбрать способ оплаты";
+    if (!this._payment) {
+      errors.payment = 'Необходимо выбрать способ оплаты';
     }
 
-    if (!this.deliveryAddress || this.deliveryAddress.trim().length === 0) {
-      validationErrors.deliveryAddress = "Не указан адрес доставки";
+    if (!this._address || this._address.trim().length === 0) {
+      errors.address = 'Не указан адрес доставки';
     }
 
-    if (!this.contactEmail || this.contactEmail.trim().length === 0) {
-      validationErrors.contactEmail = "Не указан email";
+    if (!this._email || this._email.trim().length === 0) {
+      errors.email = 'Не указан email';
     }
 
-    if (!this.contactPhone || this.contactPhone.trim().length === 0) {
-      validationErrors.contactPhone = "Не указан номер телефона";
+    if (!this._phone || this._phone.trim().length === 0) {
+      errors.phone = 'Не указан номер телефона';
     }
 
-    return validationErrors;
+    return errors;
   }
 }
