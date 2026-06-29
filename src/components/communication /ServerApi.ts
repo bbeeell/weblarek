@@ -1,18 +1,18 @@
-import { Api } from '../base/Api';
-import { IApi, IOrderRequest, TOrderResponse, IOrderResultApi } from '../../types/index';
+import { IApi } from '../base/Api';
+import { IOrderData, IOrderResponse, IProductList } from '../../types/index';
 
 export class ServerApi {
-  protected api: IApi;
+  protected requestHandler: IApi;
 
-  constructor(api: Api) {
-    this.api = api;
+  constructor(apiInstance: IApi) {
+    this.requestHandler = apiInstance;
   }
 
-  async getProducts(): Promise<IOrderResultApi> {
-    return this.api.get('/product/');
+  public async fetchGoods(): Promise<IProductList> {
+    return this.requestHandler.get('/product');
   }
 
-  async postOrder(orderRequest: IOrderRequest): Promise<TOrderResponse> {
-    return this.api.post('/order/', orderRequest);
+  public async placeNewOrder(orderDetails: IOrderData): Promise<IOrderResponse> {
+    return this.requestHandler.post('/order', orderDetails);
   }
 }
