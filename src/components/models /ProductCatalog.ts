@@ -1,31 +1,27 @@
-import { IProduct } from "../../types/index";
+import { IProduct } from '../../types/index';
 
 export class ProductCatalog {
-  protected products: IProduct[];
-  protected selectedProduct: IProduct | null;
+  protected products: IProduct[] = [];
+  protected selectedProduct: IProduct | null = null;
 
-  constructor() {
-    this.products = [];
-    this.selectedProduct = null;
-  }
-
-  saveProducts(products: IProduct[]) {
+  public saveProducts(products: IProduct[]): void {
     this.products = products;
   }
 
-  getProducts(): IProduct[] {
+  public getProducts(): IProduct[] {
     return this.products;
   }
 
-  getProductByID(id: string): IProduct | undefined {
-    return this.products.find((product) => product.id === id);
+  public getProductByID(id: string): IProduct | undefined {
+    return this.products.find(item => item.id === id);
   }
 
-  saveProduct(product: IProduct | null) {
+  // Убрала null из типа параметра
+  public saveProduct(product: IProduct): void {
     this.selectedProduct = product;
   }
 
-  getProduct(): IProduct | null {
+  public getProduct(): IProduct | null {
     return this.selectedProduct;
   }
 }
