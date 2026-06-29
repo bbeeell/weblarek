@@ -1,37 +1,46 @@
 import { IProduct } from '../../types/index';
+import { IEvents } from '../base/Events';
 
 export class ShoppingCart {
-  protected selectedProducts: IProduct[];
+  protected productList: IProduct[];
+  protected eventManager: IEvents; 
 
-  constructor() {
-    this.selectedProducts = [];
+  constructor(emitter: IEvents) {
+    this.productList = [];
+    this.eventManager = emitter;
   }
 
-  getSelectedProducts(): IProduct[] {
-    return this.selectedProducts;
+  public getItems(): IProduct[] {
+    return this.productList;
   }
 
-  addSelectedProduct(product: IProduct) {
-    this.selectedProducts.push(product);
+  public appendItem(item: IProduct): void {
+    this.productList.push(item);
+    this.eventManager.emit('basket:updated');
   }
 
-  deleteSelectedProduct(id: string) {
-    this.selectedProducts = this.selectedProducts.filter(selectedProduct => selectedProduct.id !== id);
+  public removeItem(itemId: string): void {
+    this.productList = this.productList.filter((currentItem) => currentItem.id !== itemId);
+    this.eventManager.emit('basket:updated');
   }
 
-  clearShoppingCart() {
-    this.selectedProducts = [];
+  public clearCart(): void {
+    this.productList = [];
+    this.eventManager.emit('basket:updated');
   }
 
-  getTotal(): number | null {
-    return this.selectedProducts.reduce((total, selectedProduct) => total + (selectedProduct.price || 0), 0);
+  public calculateTotal(): number {
+    if (!this.productList || this.productList.length === 0) {
+      return 0;
+    }
+    return this.productList.reduce((sum, currentItem) => sum + (currentItem.price || 0), 0);
   }
 
-  getSelectedProductsAmount(): number {
-    return this.selectedProducts.length;
+  public getItemCount(): number {
+    return this.productList.length;
   }
 
-  checkSelectedProduct(id: string): boolean {
-    return this.selectedProducts.some(selectedProduct => selectedProduct.id === id);
+  public isItemInCart(itemId: string): boolean {
+    return this.productList.some((storedItem) => storedItem.id === itemId);
   }
 }
