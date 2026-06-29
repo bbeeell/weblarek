@@ -2,45 +2,48 @@ import { IProduct } from '../../types/index';
 import { IEvents } from '../base/Events';
 
 export class ShoppingCart {
-  protected productList: IProduct[];
-  protected eventManager: IEvents; 
+  protected storedItems: IProduct[];
+  protected eventBus: IEvents;
 
-  constructor(emitter: IEvents) {
-    this.productList = [];
-    this.eventManager = emitter;
+  constructor(events: IEvents) {
+    this.storedItems = [];
+    this.eventBus = events;
   }
 
-  public getItems(): IProduct[] {
-    return this.productList;
+  public retrieveAllItems(): IProduct[] {
+    return this.storedItems;
   }
 
-  public appendItem(item: IProduct): void {
-    this.productList.push(item);
-    this.eventManager.emit('basket:updated');
-  }
-
-  public removeItem(itemId: string): void {
-    this.productList = this.productList.filter((currentItem) => currentItem.id !== itemId);
-    this.eventManager.emit('basket:updated');
-  }
-
-  public clearCart(): void {
-    this.productList = [];
-    this.eventManager.emit('basket:updated');
-  }
-
-  public calculateTotal(): number {
-    if (!this.productList || this.productList.length === 0) {
-      return 0;
+  public pushItem(newItem: IProduct): void {
+    const isDuplicate = this.storedItems.some(item => item.id === newItem.id);
+    
+    if (!isDuplicate) {
+      this.storedItems.push(newItem);
+      this.eventBus.emit('cart:item-added');
     }
-    return this.productList.reduce((sum, currentItem) => sum + (currentItem.price || 0), 0);
   }
 
-  public getItemCount(): number {
-    return this.productList.length;
+  public discardItem(targetId: string): void {
+    this.storedItems = this.storedItems.filter(item => item.id !== targetId);
+    this.eventBus.emit('cart:item-removed');
   }
 
-  public isItemInCart(itemId: string): boolean {
-    return this.productList.some((storedItem) => storedItem.id === itemId);
+  public resetCart(): void {
+    this.storedItems = [];
+    this.eventBus.emit('cart:cleared');
+  }
+
+  public evaluateTotalPrice(): number {
+    return this.storedItems.reduce((accumulator, currentProduct) => {
+      return accumulator + (currentProduct.price || 0);
+    }, 0);
+  }
+
+  public countItems(): number {
+    return this.storedItems.length;
+  }
+  
+  public verifyItemExistence(itemId: string): boolean {
+    return this.storedItems.some(item => item.id === itemId);
   }
 }
