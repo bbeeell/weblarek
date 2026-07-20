@@ -1,18 +1,17 @@
 import { Card } from './Card';
-import { IProduct } from '../../types';
 
 export class CardPreview extends Card {
     protected descriptionElement: HTMLElement;
     protected buttonElement: HTMLButtonElement;
 
-    constructor(container: HTMLElement, onButtonClick?: () => void) {
+    constructor(container: HTMLElement, events: IEvents) {
         super(container);
         this.descriptionElement = container.querySelector('.card__text') as HTMLElement;
         this.buttonElement = container.querySelector('.card__button') as HTMLButtonElement;
 
-        if (onButtonClick) {
-            this.buttonElement.addEventListener('click', onButtonClick);
-        }
+        this.buttonElement.addEventListener('click', () => {
+            events.emit('preview:action');
+        });
     }
 
     set description(value: string) {
