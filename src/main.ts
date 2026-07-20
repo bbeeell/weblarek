@@ -14,6 +14,7 @@ import { Basket } from './components/view/Basket';
 import { OrderForm } from './components/view/OrderForm';
 import { ContactsForm } from './components/view/ContactsForm';
 import { Success } from './components/view/Success';
+import { CardBasket } from './components/view/CardBasket';
 
 // 1. Инициализация инфраструктуры
 const events = new EventEmitter();
@@ -53,7 +54,6 @@ events.on('shopping-cart:open', () => {
         card.index = index + 1;
         card.title = item.title;
         card.price = item.price;
-        // Идентифицируем товар в корзине по data-id
         card.container.dataset.id = item.id;
         return card.render();
     });
@@ -64,11 +64,10 @@ events.on('shopping-cart:open', () => {
     modal.open();
 });
 
-// Удаление товара из корзины (внутри корзины)
+// Удаление товара из корзины
 events.on('shopping-cart:remove', (data: { id: string }) => {
     basket.discardItem(data.id);
-    // Перерисовываем корзину
-    events.emit('shopping-cart:open');
+    events.emit('shopping-cart:open'); // Перерисовываем корзину
 });
 
 // Открытие превью товара
@@ -101,14 +100,14 @@ events.on('card:selected', (data: { item: IProduct }) => {
     modal.open();
 });
 
-// Оформление заказа (Шаг 1)
+// Оформление заказа
 events.on('order:open', () => {
     orderForm.render({ payment: 'card', address: '', valid: false, errors: '' });
     modal.content = orderForm.render();
     modal.open();
 });
 
-// Валидация формы заказа (Шаг 1)
+// Валидация формы заказа
 events.on('order:changed', (data: { field: keyof IOrderData; value: string }) => {
     if (data.field === 'payment') buyer.setPayment(data.value as 'card' | 'cash' | '');
     if (data.field === 'address') buyer.setAddress(data.value);
@@ -119,13 +118,13 @@ events.on('order:changed', (data: { field: keyof IOrderData; value: string }) =>
     orderForm.errors = Object.values(errors).join('; ');
 });
 
-// Переход к контактам (Шаг 2)
+// Переход к контактам
 events.on('order:submit', () => {
     contactsForm.render({ email: '', phone: '', valid: false, errors: '' });
     modal.content = contactsForm.render();
 });
 
-// Валидация контактов (Шаг 2)
+// Валидация контактов
 events.on('contacts:changed', (data: { field: keyof IOrderData; value: string }) => {
     if (data.field === 'email') buyer.setEmail(data.value);
     if (data.field === 'phone') buyer.setPhone(data.value);
@@ -161,6 +160,7 @@ events.on('contacts:submit', async () => {
             header.counter = 0;
         }
     } catch (error) {
+        // Логирование ошибки сервера
         console.error('Ошибка при оформлении заказа:', error);
     }
 });
@@ -188,6 +188,7 @@ async function loadCatalog() {
 
         gallery.replaceChildren(...cardElements);
     } catch (error) {
+        // Логирование ошибки загрузки каталога
         console.error('Ошибка загрузки каталога:', error);
     }
 }
