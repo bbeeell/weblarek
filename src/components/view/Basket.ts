@@ -1,31 +1,33 @@
 import { Component } from '../base/Component';
 import { IEvents } from '../base/Events';
 
-export class Basket extends Component<HTMLElement> {
-    protected listElement: HTMLElement;
-    protected totalElement: HTMLElement;
-    protected orderButton: HTMLButtonElement;
+export class CardBasket extends Component<HTMLElement> {
+    protected indexElement: HTMLElement;
+    protected deleteButton: HTMLButtonElement;
+    protected titleElement: HTMLElement;
+    protected priceElement: HTMLElement;
 
-    constructor(container: HTMLElement, protected events: IEvents) {
+    constructor(container: HTMLElement, protected events: IEvents, itemId: string) {
         super(container);
-        this.listElement = container.querySelector('.basket__list') as HTMLElement;
-        this.totalElement = container.querySelector('.basket__price') as HTMLElement;
-        this.orderButton = container.querySelector('.basket__button') as HTMLButtonElement;
+        this.indexElement = container.querySelector('.basket__item-index') as HTMLElement;
+        this.deleteButton = container.querySelector('.basket__item-delete') as HTMLButtonElement;
+        this.titleElement = container.querySelector('.card__title') as HTMLElement;
+        this.priceElement = container.querySelector('.card__price') as HTMLElement;
 
-        this.orderButton.addEventListener('click', () => this.events.emit('order:open'));
+        this.deleteButton.addEventListener('click', () => {
+            this.events.emit('basket:remove', { id: itemId });
+        });
     }
 
-    set items(items: HTMLElement[]) {
-        if (items.length === 0) {
-            this.listElement.innerHTML = '<p>Корзина пуста</p>';
-            this.setDisabled(this.orderButton, true);
-        } else {
-            this.listElement.replaceChildren(...items);
-            this.setDisabled(this.orderButton, false);
-        }
+    set index(value: number) {
+        this.setText(this.indexElement, String(value));
     }
 
-    set total(value: number) {
-        this.setText(this.totalElement, `${value} синапсов`);
+    set title(value: string) {
+        this.setText(this.titleElement, value);
+    }
+
+    set price(value: number | null) {
+        this.setText(this.priceElement, value !== null ? `${value} синапсов` : 'Бесценно');
     }
 }
