@@ -1,4 +1,4 @@
-import { IProduct } from '../../types/index';
+import { IProduct } from '../../types';
 import { IEvents } from '../base/Events';
 
 export class ShoppingCart {
@@ -16,27 +16,24 @@ export class ShoppingCart {
 
   public pushItem(newItem: IProduct): void {
     const isDuplicate = this.storedItems.some(item => item.id === newItem.id);
-    
     if (!isDuplicate) {
       this.storedItems.push(newItem);
-      this.eventBus.emit('cart:item-added');
+      this.eventBus.emit('basket:changed'); 
     }
   }
 
   public discardItem(targetId: string): void {
     this.storedItems = this.storedItems.filter(item => item.id !== targetId);
-    this.eventBus.emit('cart:item-removed');
+    this.eventBus.emit('basket:changed'); 
   }
 
   public resetCart(): void {
     this.storedItems = [];
-    this.eventBus.emit('cart:cleared');
+    this.eventBus.emit('basket:changed');
   }
 
   public evaluateTotalPrice(): number {
-    return this.storedItems.reduce((accumulator, currentProduct) => {
-      return accumulator + (currentProduct.price || 0);
-    }, 0);
+    return this.storedItems.reduce((sum, item) => sum + (item.price || 0), 0);
   }
 
   public countItems(): number {
