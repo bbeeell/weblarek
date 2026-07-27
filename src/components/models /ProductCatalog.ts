@@ -1,27 +1,34 @@
-import { IProduct } from '../../types/index';
+import { IProduct } from '../../types';
+import { IEvents } from '../base/Events';
 
 export class ProductCatalog {
-  protected products: IProduct[] = [];
-  protected selectedProduct: IProduct | null = null;
+    protected products: IProduct[] = [];
+    protected selectedProduct: IProduct | null = null;
+    protected eventBus: IEvents;
 
-  public saveProducts(products: IProduct[]): void {
-    this.products = products;
-  }
+    constructor(events: IEvents) {
+        this.eventBus = events;
+    }
 
-  public getProducts(): IProduct[] {
-    return this.products;
-  }
+    public saveProducts(products: IProduct[]): void {
+        this.products = products;
+        this.eventBus.emit('catalog:changed');
+    }
 
-  public getProductByID(id: string): IProduct | undefined {
-    return this.products.find(item => item.id === id);
-  }
+    public getProducts(): IProduct[] {
+        return this.products;
+    }
 
-  // Убрала null из типа параметра
-  public saveProduct(product: IProduct): void {
-    this.selectedProduct = product;
-  }
+    public getProductByID(id: string): IProduct | undefined {
+        return this.products.find(item => item.id === id);
+    }
 
-  public getProduct(): IProduct | null {
-    return this.selectedProduct;
-  }
+    public saveProduct(product: IProduct): void {
+        this.selectedProduct = product;
+        this.eventBus.emit('preview:update');
+    }
+
+    public getProduct(): IProduct | null {
+        return this.selectedProduct;
+    }
 }
