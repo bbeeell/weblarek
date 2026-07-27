@@ -16,6 +16,6 @@ export class Card extends Component<IProduct> {
     }
 
     set price(value: number | null) {
-        this.setText(this.priceElement, value ? `${value} синапсов` : 'Бесценно');
+        this.setText(this.priceElement, value !== null ? `${value} синапсов` : 'Бесценно');
     }
 }
