@@ -23,12 +23,12 @@ const events = new EventEmitter();
 const api = new Api(API_URL);
 const serverApi = new ServerApi(api);
 
-// 2. Модели
-const catalog = new ProductCatalog();
+// 2. Модели (Передача events в модели для эмитов)
+const catalog = new ProductCatalog(events);
 const basket = new ShoppingCart(events);
 const buyer = new Buyer();
 
-// 3. Представления 
+// 3. Представления
 const modal = new Modal(document.getElementById('modal-container') as HTMLElement, events);
 const header = new Header(document.querySelector('.header') as HTMLElement, events);
 const basketView = new Basket(document.getElementById('basket') as HTMLElement, events);
@@ -47,9 +47,8 @@ const success = new Success(
     () => modal.close()
 );
 
-// 4. Обработчики изменений МОДЕЛЕЙ
+// 4. Обработчики изменений МОДЕЛЕЙ (При изменении данных -> перерисовка)
 
-// Изменение каталога
 events.on('catalog:changed', () => {
     const catalogItems = catalog.getProducts();
     const cardTemplate = document.getElementById('card-catalog') as HTMLTemplateElement;
@@ -57,10 +56,7 @@ events.on('catalog:changed', () => {
     const cardElements = catalogItems.map(item => {
         const card = new CardCatalog(
             cardTemplate.content.firstElementChild?.cloneNode(true) as HTMLElement,
-            () => {
-                // Генерирация события выбора товара
-                events.emit('card:selected', { item });
-            }
+            () => events.emit('card:selected', { item })
         );
         card.title = item.title;
         card.price = item.price;
@@ -72,11 +68,9 @@ events.on('catalog:changed', () => {
     catalogView.items = cardElements;
 });
 
-// Изменение корзины
 events.on('basket:changed', () => {
     header.counter = basket.countItems();
     
-    // Если корзина открыта в модалке, идет её обновление
     if (modal.container.classList.contains('modal_active')) {
         const basketItems = basket.retrieveAllItems();
         const basketTemplate = document.getElementById('card-basket') as HTMLTemplateElement;
@@ -98,14 +92,21 @@ events.on('basket:changed', () => {
     }
 });
 
-// Изменение покупателя (Валидация и обновление всех форм)
+// Кроме валидации, здесь же идет обновление полей в представлениях
 events.on('buyer:changed', () => {
+    const data = buyer.getData();
     const errors = buyer.validateFields();
 
+    // Обновление полей и валидация для OrderForm
+    orderForm.payment = data.payment;
+    orderForm.address = data.address;
     const orderErrors = [errors.payment, errors.address].filter(Boolean).join('; ');
     orderForm.valid = !errors.payment && !errors.address;
     orderForm.errors = orderErrors;
 
+    // Обновление полей и валидация для ContactsForm
+    contactsForm.email = data.email;
+    contactsForm.phone = data.phone;
     const contactsErrors = [errors.email, errors.phone].filter(Boolean).join('; ');
     contactsForm.valid = !errors.email && !errors.phone;
     contactsForm.errors = contactsErrors;
@@ -113,20 +114,17 @@ events.on('buyer:changed', () => {
 
 // 5. Обработчики пользовательских действий (Слушаем события от View)
 
-// Открытие корзины
+// Открытие корзины (без эмита модели! Кнопка уже неактивна по умолчанию)
 events.on('shopping-cart:open', () => {
     modal.content = basketView.render();
     modal.open();
-    events.emit('basket:changed');
 });
 
-// Выбор товара в каталоге
 events.on('card:selected', (data: { item: IProduct }) => {
     catalog.saveProduct(data.item);
-    events.emit('preview:update');
+    // Модель сама эмитит 'preview:update'
 });
 
-// Обновление превью
 events.on('preview:update', () => {
     const selected = catalog.getProduct();
     if (!selected) return;
@@ -150,7 +148,6 @@ events.on('preview:update', () => {
     modal.open();
 });
 
-// Нажатие на кнопку в превью (чистый эмит)
 events.on('preview:action', () => {
     const selected = catalog.getProduct();
     if (!selected) return;
@@ -161,41 +158,33 @@ events.on('preview:action', () => {
         basket.pushItem(selected);
     }
     modal.close();
-    // Модель корзины сама эмитит 'basket:changed'.
 });
 
-// Удаление товара из корзины
 events.on('basket:remove', (data: { id: string }) => {
     basket.discardItem(data.id);
-    // Модель корзины сама эмитит 'basket:changed'.
 });
 
-// Оформление заказа (Открытие)
 events.on('order:open', () => {
     buyer.resetProfile();
-    events.emit('buyer:changed'); // Формы станут невалидными
-    modal.content = orderForm.render();
+    // Модель сама эмитит 'buyer:changed'
+    modal.content = orderForm.render(); // render из Component
     modal.open();
 });
 
-// Изменение полей заказа
 events.on('order:changed', (data: { field: keyof IOrderRequest; value: string }) => {
     if (data.field === 'payment') buyer.setPayment(data.value as 'card' | 'cash' | '');
     if (data.field === 'address') buyer.setAddress(data.value);
 });
 
-// Переход к контактам
 events.on('order:submit', () => {
     modal.content = contactsForm.render();
 });
 
-// Изменение контактов
 events.on('contacts:changed', (data: { field: keyof IOrderRequest; value: string }) => {
     if (data.field === 'email') buyer.setEmail(data.value);
     if (data.field === 'phone') buyer.setPhone(data.value);
 });
 
-// Отправка заказа
 events.on('contacts:submit', async () => {
     try {
         const response = await serverApi.submitOrder({
@@ -208,11 +197,11 @@ events.on('contacts:submit', async () => {
         });
 
         if (response) {
-            success.total = response.total; // Ответ сервера
+            success.total = response.total;
             modal.content = success.render();
             
-            basket.resetCart(); // Эмитит 'basket:changed'
-            buyer.resetProfile(); // Эмитит 'buyer:changed'
+            basket.resetCart();
+            buyer.resetProfile();
         }
     } catch (error) {
         console.error('Ошибка при оформлении заказа:', error);
@@ -224,7 +213,7 @@ async function loadCatalog() {
     try {
         const data = await serverApi.requestProductCatalog();
         catalog.saveProducts(data.items);
-        events.emit('catalog:changed');
+        // saveProducts внутри модели эмитит 'catalog:changed'
     } catch (error) {
         console.error('Ошибка загрузки каталога:', error);
     }
