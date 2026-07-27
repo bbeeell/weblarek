@@ -30,14 +30,4 @@ export abstract class Form<T> extends Component<T> {
     set errors(value: string) {
         this.setText(this.errorsContainer, value);
     }
-
-    // render теперь стандартный. При вызове без аргументов он просто вернёт контейнер.
-    render(state?: Partial<T> & { errors?: string }): HTMLElement {
-        if (state) {
-            const { errors, ...inputs } = state;
-            if (errors) this.errors = errors;
-            Object.assign(this, inputs);
-        }
-        return this.container;
-    }
 }
