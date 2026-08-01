@@ -5,6 +5,7 @@ export class Basket extends Component<HTMLElement> {
     protected listElement: HTMLElement;
     protected totalElement: HTMLElement;
     protected orderButton: HTMLButtonElement;
+    protected emptyMessage: HTMLElement;
 
     constructor(container: HTMLElement, protected events: IEvents) {
         super(container);
@@ -12,7 +13,10 @@ export class Basket extends Component<HTMLElement> {
         this.totalElement = container.querySelector('.basket__price') as HTMLElement;
         this.orderButton = container.querySelector('.basket__button') as HTMLButtonElement;
 
-        // Кнопка сразу неактивна (защита от эмитов)
+        this.emptyMessage = document.createElement('p');
+        this.emptyMessage.textContent = 'Корзина пуста';
+
+        // Кнопка сразу неактивна
         this.setDisabled(this.orderButton, true);
 
         this.orderButton.addEventListener('click', () => this.events.emit('order:open'));
@@ -20,7 +24,8 @@ export class Basket extends Component<HTMLElement> {
 
     set items(items: HTMLElement[]) {
         if (items.length === 0) {
-            this.listElement.innerHTML = '<p>Корзина пуста</p>';
+            // Вставляем готовый DOM-элемент, а не строку HTML
+            this.listElement.replaceChildren(this.emptyMessage);
             this.setDisabled(this.orderButton, true);
         } else {
             this.listElement.replaceChildren(...items);
