@@ -1,4 +1,5 @@
 import { API_URL, CDN_URL } from './utils/constants';
+import { cloneTemplate } from './utils/utils';
 import { Api } from './components/base/Api';
 import { ServerApi } from './components/communication/ServerApi';
 import { ShoppingCart } from './components/models/ShoppingCart';
@@ -28,34 +29,27 @@ const catalog = new ProductCatalog(events);
 const basket = new ShoppingCart(events);
 const buyer = new Buyer();
 
-// 3. Представления
-const modal = new Modal(document.getElementById('modal-container') as HTMLElement, events);
-const header = new Header(document.querySelector('.header') as HTMLElement, events);
-const basketView = new Basket(document.getElementById('basket') as HTMLElement, events);
-const orderForm = new OrderForm(document.getElementById('order') as HTMLFormElement, events);
-const contactsForm = new ContactsForm(document.getElementById('contacts') as HTMLFormElement, events);
+// 3. Представления (ВСЕ через cloneTemplate)
+const modal = new Modal(cloneTemplate('#modal-container'), events);
+const header = new Header(document.querySelector('.header') as HTMLElement, events); // Шапка статична
+const basketView = new Basket(cloneTemplate('#basket'), events);
+const orderForm = new OrderForm(cloneTemplate('#order'), events);
+const contactsForm = new ContactsForm(cloneTemplate('#contacts'), events);
 const catalogView = new Catalog(document.querySelector('.gallery') as HTMLElement);
 
-const previewTemplate = document.getElementById('card-preview') as HTMLTemplateElement;
-const cardPreview = new CardPreview(
-    previewTemplate.content.firstElementChild?.cloneNode(true) as HTMLElement,
-    events
-);
+// Превью создается один раз
+const cardPreview = new CardPreview(cloneTemplate('#card-preview'), events);
 
-const success = new Success(
-    document.getElementById('success') as HTMLElement,
-    () => modal.close()
-);
+// Success создается один раз
+const success = new Success(cloneTemplate('#success'), () => modal.close());
 
-// 4. Обработчики изменений МОДЕЛЕЙ (При изменении данных -> перерисовка)
+// 4. Обработчики изменений МОДЕЛЕЙ
 
 events.on('catalog:changed', () => {
     const catalogItems = catalog.getProducts();
-    const cardTemplate = document.getElementById('card-catalog') as HTMLTemplateElement;
-
     const cardElements = catalogItems.map(item => {
         const card = new CardCatalog(
-            cardTemplate.content.firstElementChild?.cloneNode(true) as HTMLElement,
+            cloneTemplate('#card-catalog'),
             () => events.emit('card:selected', { item })
         );
         card.title = item.title;
@@ -64,7 +58,6 @@ events.on('catalog:changed', () => {
         card.category = item.category;
         return card.render();
     });
-
     catalogView.items = cardElements;
 });
 
@@ -73,11 +66,9 @@ events.on('basket:changed', () => {
     
     if (modal.container.classList.contains('modal_active')) {
         const basketItems = basket.retrieveAllItems();
-        const basketTemplate = document.getElementById('card-basket') as HTMLTemplateElement;
-        
         const itemElements = basketItems.map((item, index) => {
             const card = new CardBasket(
-                basketTemplate.content.firstElementChild?.cloneNode(true) as HTMLElement,
+                cloneTemplate('#card-basket'),
                 events,
                 item.id
             );
@@ -86,25 +77,21 @@ events.on('basket:changed', () => {
             card.price = item.price;
             return card.render();
         });
-
         basketView.items = itemElements;
         basketView.total = basket.evaluateTotalPrice();
     }
 });
 
-// Кроме валидации, здесь же идет обновление полей в представлениях
 events.on('buyer:changed', () => {
     const data = buyer.getData();
     const errors = buyer.validateFields();
 
-    // Обновление полей и валидация для OrderForm
     orderForm.payment = data.payment;
     orderForm.address = data.address;
     const orderErrors = [errors.payment, errors.address].filter(Boolean).join('; ');
     orderForm.valid = !errors.payment && !errors.address;
     orderForm.errors = orderErrors;
 
-    // Обновление полей и валидация для ContactsForm
     contactsForm.email = data.email;
     contactsForm.phone = data.phone;
     const contactsErrors = [errors.email, errors.phone].filter(Boolean).join('; ');
@@ -112,9 +99,8 @@ events.on('buyer:changed', () => {
     contactsForm.errors = contactsErrors;
 });
 
-// 5. Обработчики пользовательских действий (Слушаем события от View)
+// 5. Обработчики пользовательских действий
 
-// Открытие корзины (без эмита модели! Кнопка уже неактивна по умолчанию)
 events.on('shopping-cart:open', () => {
     modal.content = basketView.render();
     modal.open();
@@ -122,7 +108,6 @@ events.on('shopping-cart:open', () => {
 
 events.on('card:selected', (data: { item: IProduct }) => {
     catalog.saveProduct(data.item);
-    // Модель сама эмитит 'preview:update'
 });
 
 events.on('preview:update', () => {
@@ -166,8 +151,7 @@ events.on('basket:remove', (data: { id: string }) => {
 
 events.on('order:open', () => {
     buyer.resetProfile();
-    // Модель сама эмитит 'buyer:changed'
-    modal.content = orderForm.render(); // render из Component
+    modal.content = orderForm.render();
     modal.open();
 });
 
@@ -213,7 +197,6 @@ async function loadCatalog() {
     try {
         const data = await serverApi.requestProductCatalog();
         catalog.saveProducts(data.items);
-        // saveProducts внутри модели эмитит 'catalog:changed'
     } catch (error) {
         console.error('Ошибка загрузки каталога:', error);
     }
